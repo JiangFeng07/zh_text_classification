@@ -5,7 +5,7 @@
   - 使用 cnn 进行文本分类 参考论文([Convolutional Neural Networks for Sentence Classification](https://arxiv.org/pdf/1408.5882.pdf))；
   
 ## 数据集
-  数据集格式 : label words 其中 label 是标签，words 是分词后的单词词语，label 和 words 之间以 tab 键分隔，words 之间以 ，隔开
+   数据集格式 : label words 其中 label 是标签，words 是分词后的单词词语，label 和 words 之间以 tab 键分隔，words 之间以 ，隔开
 
 ## 代码说明
 - data_helper.py 数据预处理
