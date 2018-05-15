@@ -221,17 +221,17 @@ if __name__ == "__main__":
                         default=path + '/result.csv')
     FLAGS, unparser = parser.parse_known_args()
 
-    # train_contents, train_labels = read_data(FLAGS.train_data, chinese_only=True)
-    # valid_contents, valid_labels = read_data(FLAGS.valid_data, chinese_only=True)
-    #
-    # words, word2id, labels, label2id = word_to_id(train_contents, train_labels, FLAGS.vocab_size)
-    # save_words(word2id, FLAGS.word_file)
-    # save_labels(label2id, FLAGS.label_file)
+    train_contents, train_labels = read_data(FLAGS.train_data, chinese_only=True)
+    valid_contents, valid_labels = read_data(FLAGS.valid_data, chinese_only=True)
+
+    words, word2id, labels, label2id = word_to_id(train_contents, train_labels, FLAGS.vocab_size)
+    save_words(word2id, FLAGS.word_file)
+    save_labels(label2id, FLAGS.label_file)
 
     pred_contents, review_id, texts = read_data(FLAGS.test_data, sep='\t', chinese_only=True)
     model = TextRNN(FLAGS.embedding_size, FLAGS.hidden_layers, FLAGS.hidden_units, FLAGS.number_classes,
                     FLAGS.learning_rate, FLAGS.sequence_length, FLAGS.vocab_size)
 
-    # train()
+    train()
     # test()
-    predict()
+    # predict()
