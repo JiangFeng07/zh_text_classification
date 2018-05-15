@@ -17,6 +17,7 @@ class TextRNN(object):
         with tf.device('/cpu:0'), tf.name_scope('embedding'):
             embedding = tf.get_variable(name='embedding', shape=[vocab_size, embedding_size], dtype=tf.float32,
                                         initializer=xavier_initializer())
+            # embedding = tf.get_variable(name='embedding', shape=[vocab_size, embedding_size], dtype=tf.float32)
             embed = tf.nn.embedding_lookup(embedding, self.input_x)
 
         with tf.name_scope('multi_rnn'):

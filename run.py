@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*- 
+# -*- coding:utf-8 -*-
 # Author: lionel
 import argparse
 import os
@@ -10,10 +10,11 @@ from datetime import timedelta
 import tensorflow as tf
 from sklearn import metrics
 
-from cnn_model import TextCNN
 from data_helper import *
 from rnn_model import TextRNN
 
+# from cnn_model import TextCNN
+# from bilstm_model import BiLstmModel
 FLAGS = None
 
 
@@ -36,7 +37,7 @@ def feed_data(x_batch, y_batch, keep_prob):
 def evaluate(sess, x_, y_):
     """评估在某一数据上的准确率和损失"""
     data_len = len(x_)
-    batch_eval = generate_batch(x_, y_, 128)
+    batch_eval = generate_batch(x_, y_, FLAGS.batch_size)
     total_loss = 0.0
     total_acc = 0.0
     for x_batch, y_batch in batch_eval:
@@ -61,8 +62,9 @@ def train():
     print("Loading training and validation data...")
     # 载入训练集与验证集
     start_time = time.time()
-    x_train, y_train = process_file(FLAGS.train_data, word_to_id, label_to_id, FLAGS.sequence_length)
-    x_val, y_val = process_file(FLAGS.valid_data, word_to_id, label_to_id, FLAGS.sequence_length)
+
+    x_train, y_train = process_file(train_contents, train_labels, word2id, label2id, FLAGS.sequence_length)
+    x_val, y_val = process_file(valid_contents, valid_labels, word2id, label2id, FLAGS.sequence_length)
     time_dif = get_time_dif(start_time)
     print("Time usage:", time_dif)
 
@@ -79,18 +81,18 @@ def train():
     require_improvement = 1000  # 如果超过1000轮未提升，提前结束训练
 
     flag = False
-    for epoch in range(2):
+    for epoch in range(FLAGS.epoch):
         print('Epoch:', epoch + 1)
         batch_train = generate_batch(x_train, y_train, batch_size=FLAGS.batch_size)
         for x_batch, y_batch in batch_train:
             feed_dict = feed_data(x_batch, y_batch, 0.8)
 
-            if total_batch % 10 == 0:
+            if total_batch % 100 == 0:
                 # 每多少轮次将训练结果写入tensorboard scalar
                 s = session.run(merged_summary, feed_dict=feed_dict)
                 writer.add_summary(s, total_batch)
 
-            if total_batch % 50 == 0:
+            if total_batch % 10 == 0:
                 # 每多少轮次输出在训练集和验证集上的性能
                 feed_dict[model.keep_prob] = 1.0
                 loss_train, acc_train = session.run([model.loss, model.accuracy], feed_dict=feed_dict)
@@ -125,19 +127,17 @@ def train():
 def test():
     print("Loading test data...")
     start_time = time.time()
-    x_test, y_test = process_file(FLAGS.test_data, word_to_id, label_to_id, FLAGS.sequence_length)
-
+    x_test, y_test = process_file(FLAGS.test_data, word2id, label2id, FLAGS.sequence_length)
     session = tf.Session()
     session.run(tf.global_variables_initializer())
     saver = tf.train.Saver()
     saver.restore(sess=session, save_path=FLAGS.save_path)  # 读取保存的模型
-    # saver = tf.train.import_meta_graph("model/model.ckpt/model.ckpt.meta")
     print('Testing...')
     loss_test, acc_test = evaluate(session, x_test, y_test)
     msg = 'Test Loss: {0:>6.2}, Test Acc: {1:>7.2%}'
     print(msg.format(loss_test, acc_test))
 
-    batch_size = 50
+    batch_size = 202
     data_len = len(x_test)
     num_batch = int((data_len - 1) / batch_size) + 1
 
@@ -151,7 +151,7 @@ def test():
             model.keep_prob: 1.0
         }
         y_pred_cls[start_id:end_id] = session.run(tf.argmax(model.prediction, 1), feed_dict=feed_dict)
-
+    print(y_pred_cls)
     # 评估
     print("Precision, Recall and F1-Score...")
     print(metrics.classification_report(y_test_cls, y_pred_cls, target_names=labels))
@@ -165,45 +165,73 @@ def test():
     print("Time usage:", time_dif)
 
 
+def predict():
+    word2id = words_to_dic(FLAGS.word_file)
+    x_test = process_predict_file(pred_contents, word2id, FLAGS.sequence_length)
+    session = tf.Session()
+    session.run(tf.global_variables_initializer())
+    saver = tf.train.Saver()
+    saver.restore(sess=session, save_path=FLAGS.save_path)
+    feed_dict = {
+        model.input_x: x_test,
+        model.keep_prob: 1.0
+    }
+    result = session.run(tf.argmax(model.prediction, 1), feed_dict=feed_dict)
+    print result
+    with tf.gfile.GFile(FLAGS.result, 'w') as f:
+        for i in range(len(result)):
+            if result[i] == 1:
+                f.write(str(review_id[i]) + "\t" + "no" + "\t" + texts[i] + '\n')
+            else:
+                f.write(str(review_id[i]) + "\t" + "yes" + "\t" + texts[i] + '\n')
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--embedding_size', type=int, default=128)
+    parser.add_argument('--embedding_size', type=int, default=200)
     parser.add_argument('--hidden_layers', type=int, default=2)
-    parser.add_argument('--hidden_units', type=int, default=128)
-    parser.add_argument('--number_classes', type=int, default=6)
-    parser.add_argument('--learning_rate', type=float, default=0.001)
-    parser.add_argument('--sequence_length', type=int, default=600)
-    parser.add_argument('--batch_size', type=int, default=70)
-    parser.add_argument('--vocab_size', type=int, default=5000)
-    parser.add_argument('--filter_sizes', type=list, default=[3, 4, 5])
-    parser.add_argument('--num_filters', type=list, default=128)
-    parser.add_argument('--l2_reg_lambda', type=float, default=0.0)
+    parser.add_argument('--hidden_units', type=int, default=256)
+    parser.add_argument('--number_classes', type=int, default=2)
+    parser.add_argument('--learning_rate', type=float, default=0.01)
+    parser.add_argument('--sequence_length', type=int, default=800)
+    parser.add_argument('--batch_size', type=int, default=100)
+    parser.add_argument('--vocab_size', type=int, default=7000)
+    # parser.add_argument('--filter_sizes', type=list, default=[3, 4, 5])
+    # parser.add_argument('--num_filters', type=list, default=128)
+    # parser.add_argument('--l2_reg_lambda', type=float, default=0.0)
+    parser.add_argument('--epoch', type=int, default=2)
 
-    # parser.add_argument('--train_data', type=str,
-    #                     default='viewfs://hadoop-meituan/ghnn01/user/hadoop-poistar/jiangfeng/train.csv')
-    # parser.add_argument('--valid_data', type=str,
-    #                     default='viewfs://hadoop-meituan/ghnn01/user/hadoop-poistar/jiangfeng/valid.csv')
-    # parser.add_argument('--tensorboard_dir', type=str,
-    #                     default='viewfs://hadoop-meituan/ghnn01/user/hadoop-poistar/jiangfeng/text/tensorboard')
-    # parser.add_argument('--save_dir', type=str,
-    # default='viewfs://hadoop-meituan/ghnn01/user/hadoop-poistar/jiangfeng/text/')
-
-
-    parser.add_argument('--test_data', type=str, default='data/multi_test.csv')
-    # parser.add_argument('--train_data', type=str, default='data/train.csv')
-    parser.add_argument('--train_data', type=str, default='train.csv')
-    parser.add_argument('--save_path', type=str, default='cnn_model/model.ckpt')
-    parser.add_argument('--tensorboard_dir', type=str, default='model/tensorboard')
-    parser.add_argument('--valid_data', type=str, default='data/valid.csv')
-
+    path = 'grace_gzh_seg_model'
+    parser.add_argument('--train_data', type=str,
+                        default=path + '/train.csv')
+    parser.add_argument('--valid_data', type=str,
+                        default=path + '/valid.csv')
+    parser.add_argument('--test_data', type=str,
+                        default=path + '/test.csv')
+    parser.add_argument('--tensorboard_dir', type=str,
+                        default=path + '/tensorboard')
+    parser.add_argument('--save_path', type=str,
+                        default=path + '/model.ckpt')
+    parser.add_argument('--word_file', type=str,
+                        default=path + '/words.csv')
+    parser.add_argument('--label_file', type=str,
+                        default=path + '/labels.csv')
+    parser.add_argument('--result', type=str,
+                        default=path + '/result.csv')
     FLAGS, unparser = parser.parse_known_args()
 
-    contents, labels = read_data(FLAGS.train_data)
-    words, word_to_id, labels, label_to_id = word_to_id(contents, labels)
-    # model = TextRNN(FLAGS.embedding_size, FLAGS.hidden_layers, FLAGS.hidden_units, FLAGS.number_classes,
-    #                 FLAGS.learning_rate, FLAGS.sequence_length, FLAGS.vocab_size)
-    model = TextCNN(FLAGS.embedding_size, FLAGS.number_classes, FLAGS.sequence_length, FLAGS.learning_rate,
-                    FLAGS.filter_sizes, FLAGS.num_filters, FLAGS.vocab_size, FLAGS.l2_reg_lambda)
+    # train_contents, train_labels = read_data(FLAGS.train_data, chinese_only=True)
+    # valid_contents, valid_labels = read_data(FLAGS.valid_data, chinese_only=True)
+    #
+    # words, word2id, labels, label2id = word_to_id(train_contents, train_labels, FLAGS.vocab_size)
+    # save_words(word2id, FLAGS.word_file)
+    # save_labels(label2id, FLAGS.label_file)
+
+    pred_contents, review_id, texts = read_data(FLAGS.test_data, sep='\t', chinese_only=True)
+    model = TextRNN(FLAGS.embedding_size, FLAGS.hidden_layers, FLAGS.hidden_units, FLAGS.number_classes,
+                    FLAGS.learning_rate, FLAGS.sequence_length, FLAGS.vocab_size)
+
     # train()
-    test()
+    # test()
+    predict()
