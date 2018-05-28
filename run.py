@@ -112,7 +112,7 @@ def train():
                       + ' Val Loss: {3:>6.2}, Val Acc: {4:>7.2%}, Time: {5} {6}'
                 print(msg.format(total_batch, loss_train, acc_train, loss_val, acc_val, time_dif, improved_str))
 
-            session.run(model.optimizer, feed_dict=feed_dict)  # 运行优化
+            session.run(model.optimizer, feed_dict=feed_dict)
             total_batch += 1
 
             if total_batch - last_improved > require_improvement:
@@ -194,25 +194,25 @@ if __name__ == "__main__":
     parser.add_argument('--hidden_units', type=int, default=256)
     parser.add_argument('--number_classes', type=int, default=2)
     parser.add_argument('--learning_rate', type=float, default=0.01)
-    parser.add_argument('--sequence_length', type=int, default=800)
+    parser.add_argument('--sequence_length', type=int, default=300)
     parser.add_argument('--batch_size', type=int, default=100)
-    parser.add_argument('--vocab_size', type=int, default=7000)
+    parser.add_argument('--vocab_size', type=int, default=3400)
     # parser.add_argument('--filter_sizes', type=list, default=[3, 4, 5])
     # parser.add_argument('--num_filters', type=list, default=128)
     # parser.add_argument('--l2_reg_lambda', type=float, default=0.0)
-    parser.add_argument('--epoch', type=int, default=2)
+    parser.add_argument('--epoch', type=int, default=5)
 
-    path = 'grace_gzh_seg_model'
+    path = 'biyu_model'
     parser.add_argument('--train_data', type=str,
-                        default=path + '/train.csv')
+                        default=path + '/train2.csv')
     parser.add_argument('--valid_data', type=str,
-                        default=path + '/valid.csv')
+                        default=path + '/valid2.csv')
     parser.add_argument('--test_data', type=str,
-                        default=path + '/test.csv')
+                        default=path + '/test2.csv')
     parser.add_argument('--tensorboard_dir', type=str,
                         default=path + '/tensorboard')
     parser.add_argument('--save_path', type=str,
-                        default=path + '/model.ckpt')
+                        default=path + '/model/model.ckpt')
     parser.add_argument('--word_file', type=str,
                         default=path + '/words.csv')
     parser.add_argument('--label_file', type=str,
@@ -221,17 +221,17 @@ if __name__ == "__main__":
                         default=path + '/result.csv')
     FLAGS, unparser = parser.parse_known_args()
 
-    train_contents, train_labels = read_data(FLAGS.train_data, chinese_only=True)
-    valid_contents, valid_labels = read_data(FLAGS.valid_data, chinese_only=True)
+    # train_contents, train_labels, _ = read_data(FLAGS.train_data)
+    # valid_contents, valid_labels, _ = read_data(FLAGS.valid_data)
+    #
+    # words, word2id, labels, label2id = word_to_id(train_contents, train_labels, FLAGS.vocab_size)
+    # save_words(word2id, FLAGS.word_file)
+    # save_labels(label2id, FLAGS.label_file)
 
-    words, word2id, labels, label2id = word_to_id(train_contents, train_labels, FLAGS.vocab_size)
-    save_words(word2id, FLAGS.word_file)
-    save_labels(label2id, FLAGS.label_file)
-
-    pred_contents, review_id, texts = read_data(FLAGS.test_data, sep='\t', chinese_only=True)
+    pred_contents, review_id, texts = read_data(FLAGS.test_data)
     model = TextRNN(FLAGS.embedding_size, FLAGS.hidden_layers, FLAGS.hidden_units, FLAGS.number_classes,
                     FLAGS.learning_rate, FLAGS.sequence_length, FLAGS.vocab_size)
 
-    train()
+    # train()
     # test()
-    # predict()
+    predict()

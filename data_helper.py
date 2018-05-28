@@ -79,6 +79,8 @@ def text_to_dic(file):
     with tf.gfile.GFile(file, 'r') as f:
         for line in f.readlines():
             fields = line.strip().decode('utf-8').split(':')
+            if len(fields) != 2:
+                continue
             dic[fields[0]] = int(fields[1])
     return dic
 
@@ -131,14 +133,3 @@ def generate_batch(x, y, batch_size=128):
         start_id = i * batch_size
         end_id = min((i + 1) * batch_size, data_len)
         yield x_shuffle[start_id:end_id], y_shuffle[start_id:end_id]
-
-
-if __name__ == "__main__":
-    text = '这家点的菜很好吃'
-    word_dic = words_to_dic('data/words.csv')
-    label_dic = label_to_dic('data/labels.csv')
-    # data_padding, label_padding = process_file('data/valid.csv', word_dic, label_dic, max_length=100)
-    # print data_padding[:10]
-    # print label_padding[:10]
-    # print data_padding[:-2]
-    # print label_padding[:-2]
