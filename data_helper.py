@@ -85,10 +85,10 @@ def text_to_dic(file):
     return dic
 
 
-def extract_chinese_word(text):
-    # line = text.strip().decode('utf-8', 'ignore')
-    zh_pattern = re.compile(ur'[^\u4e00-\u9fa5]+')
-    return ''.join(zh_pattern.split(text))
+# def extract_chinese_word(text):
+#     # line = text.strip().decode('utf-8', 'ignore')
+#     zh_pattern = re.compile(ur'[^\u4e00-\u9fa5]+')
+#     return ''.join(zh_pattern.split(text))
 
 
 def process_file(contents, labels, word2id, category2id, max_length=600):

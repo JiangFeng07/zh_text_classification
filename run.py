@@ -178,7 +178,7 @@ def predict():
         model.keep_prob: 1.0
     }
     result = session.run(tf.argmax(model.prediction, 1), feed_dict=feed_dict)
-    print result
+    print(result)
     with tf.gfile.GFile(FLAGS.result, 'w') as f:
         for i in range(len(result)):
             if result[i] == 1:
