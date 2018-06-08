@@ -9,6 +9,7 @@ from datetime import timedelta
 
 import tensorflow as tf
 from sklearn import metrics
+from sklearn.model_selection import train_test_split
 
 from data_helper import *
 from rnn_model import TextRNN
@@ -221,17 +222,20 @@ if __name__ == "__main__":
                         default=path + '/result.csv')
     FLAGS, unparser = parser.parse_known_args()
 
-    # train_contents, train_labels, _ = read_data(FLAGS.train_data)
+    contents, labels, _ = read_data(FLAGS.train_data)
+    train_contents, valid_contents, train_labels, valid_labels = train_test_split(contents, labels, test_size=0.1,
+                                                                                  random_state=0)
+
     # valid_contents, valid_labels, _ = read_data(FLAGS.valid_data)
-    #
-    # words, word2id, labels, label2id = word_to_id(train_contents, train_labels, FLAGS.vocab_size)
-    # save_words(word2id, FLAGS.word_file)
-    # save_labels(label2id, FLAGS.label_file)
+
+    words, word2id, labels, label2id = word_to_id(train_contents, train_labels, FLAGS.vocab_size)
+    save_words(word2id, FLAGS.word_file)
+    save_labels(label2id, FLAGS.label_file)
 
     pred_contents, review_id, texts = read_data(FLAGS.test_data)
     model = TextRNN(FLAGS.embedding_size, FLAGS.hidden_layers, FLAGS.hidden_units, FLAGS.number_classes,
                     FLAGS.learning_rate, FLAGS.sequence_length, FLAGS.vocab_size)
 
-    # train()
+    train()
     # test()
-    predict()
+    # predict()
