@@ -70,3 +70,4 @@ class TextRNN(object):
         with tf.name_scope('drop_wrapper'):
             drop_wrapper = tf.contrib.rnn.DropoutWrapper(lstm_cell, output_keep_prob=self.keep_prob)
         return drop_wrapper
+

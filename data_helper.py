@@ -6,7 +6,6 @@ import collections
 import tensorflow.contrib.keras as kr
 import numpy as np
 import tensorflow as tf
-import re
 
 
 def read_data(file_name, sep=' ', sep1=',', chinese_only=False):
@@ -21,7 +20,8 @@ def read_data(file_name, sep=' ', sep1=',', chinese_only=False):
             labels.append(fields[0])
             texts.append(fields[1])
             if chinese_only is True:
-                contents.append(list(extract_chinese_word(fields[1])))
+                # contents.append(list(extract_chinese_word(fields[1])))
+                contents.append(list(fields[1]))
             else:
                 contents.append(fields[1].split(sep1))
     return contents, labels, texts
@@ -86,9 +86,9 @@ def text_to_dic(file):
 
 
 # def extract_chinese_word(text):
-#     # line = text.strip().decode('utf-8', 'ignore')
-#     zh_pattern = re.compile(ur'[^\u4e00-\u9fa5]+')
-#     return ''.join(zh_pattern.split(text))
+    # line = text.strip().decode('utf-8', 'ignore')
+    # zh_pattern = re.compile(ur'[^\u4e00-\u9fa5]+')
+    # return ''.join(zh_pattern.split(text))
 
 
 def process_file(contents, labels, word2id, category2id, max_length=600):
@@ -133,3 +133,9 @@ def generate_batch(x, y, batch_size=128):
         start_id = i * batch_size
         end_id = min((i + 1) * batch_size, data_len)
         yield x_shuffle[start_id:end_id], y_shuffle[start_id:end_id]
+
+
+if __name__ == '__main__':
+    contents, labels, texts = read_data("/tmp/1.csv", chinese_only=True)
+
+    # print contents

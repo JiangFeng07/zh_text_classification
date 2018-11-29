@@ -68,7 +68,6 @@ if __name__ == "__main__":
     iterator = dataset.make_initializable_iterator()
     model = TextRNN(FLAGS.embedding_size, FLAGS.hidden_layers, FLAGS.hidden_units, FLAGS.number_classes,
                     FLAGS.learning_rate, FLAGS.vocab_size, iterator)
-    # next_element = iterator.get_next()
     with tf.Session() as sess:
         sess.run(iterator.initializer)
         sess.run(tf.tables_initializer())

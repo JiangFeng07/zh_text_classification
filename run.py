@@ -125,45 +125,45 @@ def train():
             break
 
 
-def test():
-    print("Loading test data...")
-    start_time = time.time()
-    x_test, y_test = process_file(FLAGS.test_data, word2id, label2id, FLAGS.sequence_length)
-    session = tf.Session()
-    session.run(tf.global_variables_initializer())
-    saver = tf.train.Saver()
-    saver.restore(sess=session, save_path=FLAGS.save_path)  # 读取保存的模型
-    print('Testing...')
-    loss_test, acc_test = evaluate(session, x_test, y_test)
-    msg = 'Test Loss: {0:>6.2}, Test Acc: {1:>7.2%}'
-    print(msg.format(loss_test, acc_test))
-
-    batch_size = 202
-    data_len = len(x_test)
-    num_batch = int((data_len - 1) / batch_size) + 1
-
-    y_test_cls = np.argmax(y_test, 1)
-    y_pred_cls = np.zeros(shape=len(x_test), dtype=np.int32)  # 保存预测结果
-    for i in range(num_batch):  # 逐批次处理
-        start_id = i * batch_size
-        end_id = min((i + 1) * batch_size, data_len)
-        feed_dict = {
-            model.input_x: x_test[start_id:end_id],
-            model.keep_prob: 1.0
-        }
-        y_pred_cls[start_id:end_id] = session.run(tf.argmax(model.prediction, 1), feed_dict=feed_dict)
-    print(y_pred_cls)
-    # 评估
-    print("Precision, Recall and F1-Score...")
-    print(metrics.classification_report(y_test_cls, y_pred_cls, target_names=labels))
-
-    # 混淆矩阵
-    print("Confusion Matrix...")
-    cm = metrics.confusion_matrix(y_test_cls, y_pred_cls)
-    print(cm)
-
-    time_dif = get_time_dif(start_time)
-    print("Time usage:", time_dif)
+# def test():
+#     print("Loading test data...")
+#     start_time = time.time()
+#     x_test, y_test = process_file(FLAGS.test_data, word2id, label2id, FLAGS.sequence_length)
+#     session = tf.Session()
+#     session.run(tf.global_variables_initializer())
+#     saver = tf.train.Saver()
+#     saver.restore(sess=session, save_path=FLAGS.save_path)  # 读取保存的模型
+#     print('Testing...')
+#     loss_test, acc_test = evaluate(session, x_test, y_test)
+#     msg = 'Test Loss: {0:>6.2}, Test Acc: {1:>7.2%}'
+#     print(msg.format(loss_test, acc_test))
+#
+#     batch_size = 202
+#     data_len = len(x_test)
+#     num_batch = int((data_len - 1) / batch_size) + 1
+#
+#     y_test_cls = np.argmax(y_test, 1)
+#     y_pred_cls = np.zeros(shape=len(x_test), dtype=np.int32)  # 保存预测结果
+#     for i in range(num_batch):  # 逐批次处理
+#         start_id = i * batch_size
+#         end_id = min((i + 1) * batch_size, data_len)
+#         feed_dict = {
+#             model.input_x: x_test[start_id:end_id],
+#             model.keep_prob: 1.0
+#         }
+#         y_pred_cls[start_id:end_id] = session.run(tf.argmax(model.prediction, 1), feed_dict=feed_dict)
+#     print(y_pred_cls)
+#     # 评估
+#     print("Precision, Recall and F1-Score...")
+#     print(metrics.classification_report(y_test_cls, y_pred_cls, target_names=labels))
+#
+#     # 混淆矩阵
+#     print("Confusion Matrix...")
+#     cm = metrics.confusion_matrix(y_test_cls, y_pred_cls)
+#     print(cm)
+#
+#     time_dif = get_time_dif(start_time)
+#     print("Time usage:", time_dif)
 
 
 def predict():
@@ -178,7 +178,6 @@ def predict():
         model.keep_prob: 1.0
     }
     result = session.run(tf.argmax(model.prediction, 1), feed_dict=feed_dict)
-    print( result)
     with tf.gfile.GFile(FLAGS.result, 'w') as f:
         for i in range(len(result)):
             if result[i] == 1:
@@ -194,48 +193,49 @@ if __name__ == "__main__":
     parser.add_argument('--hidden_layers', type=int, default=2)
     parser.add_argument('--hidden_units', type=int, default=256)
     parser.add_argument('--number_classes', type=int, default=2)
-    parser.add_argument('--learning_rate', type=float, default=0.01)
-    parser.add_argument('--sequence_length', type=int, default=300)
+    parser.add_argument('--learning_rate', type=float, default=0.001)
+    parser.add_argument('--sequence_length', type=int, default=800)
     parser.add_argument('--batch_size', type=int, default=100)
-    parser.add_argument('--vocab_size', type=int, default=3400)
+    parser.add_argument('--vocab_size', type=int, default=15000)
     # parser.add_argument('--filter_sizes', type=list, default=[3, 4, 5])
     # parser.add_argument('--num_filters', type=list, default=128)
     # parser.add_argument('--l2_reg_lambda', type=float, default=0.0)
     parser.add_argument('--epoch', type=int, default=5)
 
-    path = 'biyu_model'
-    parser.add_argument('--train_data', type=str,
-                        default=path + '/train2.csv')
-    parser.add_argument('--valid_data', type=str,
-                        default=path + '/valid2.csv')
+    path = 'model'
+    # parser.add_argument('--train_data', type=str,
+    #                     default='/tmp/type_train_data.csv')
+    # parser.add_argument('--valid_data', type=str,
+    #                     default=path + '/valid2.csv')
     parser.add_argument('--test_data', type=str,
-                        default=path + '/test2.csv')
-    parser.add_argument('--tensorboard_dir', type=str,
-                        default=path + '/tensorboard')
+                        default='data/test.csv')
+    # parser.add_argument('--tensorboard_dir', type=str,
+    #                     default=path + '/tensorboard')
     parser.add_argument('--save_path', type=str,
-                        default=path + '/model/model.ckpt')
+                        default=path + '/model.ckpt')
     parser.add_argument('--word_file', type=str,
                         default=path + '/words.csv')
-    parser.add_argument('--label_file', type=str,
-                        default=path + '/labels.csv')
+    # parser.add_argument('--label_file', type=str,
+    #                     default=path + '/labels.csv')
     parser.add_argument('--result', type=str,
                         default=path + '/result.csv')
     FLAGS, unparser = parser.parse_known_args()
 
-    contents, labels, _ = read_data(FLAGS.train_data)
-    train_contents, valid_contents, train_labels, valid_labels = train_test_split(contents, labels, test_size=0.1,
-                                                                                  random_state=0)
+    # contents, labels, _ = read_data(FLAGS.train_data, sep=' ')
+    # train_contents, valid_contents, train_labels, valid_labels = train_test_split(contents, labels, test_size=0.1,
+    #                                                                               random_state=0)
 
     # valid_contents, valid_labels, _ = read_data(FLAGS.valid_data)
 
-    words, word2id, labels, label2id = word_to_id(train_contents, train_labels, FLAGS.vocab_size)
-    save_words(word2id, FLAGS.word_file)
-    save_labels(label2id, FLAGS.label_file)
+    # words, word2id, labels, label2id = word_to_id(train_contents, train_labels, FLAGS.vocab_size)
+    # save_words(word2id, FLAGS.word_file)
+    # save_labels(label2id, FLAGS.label_file)
 
-    pred_contents, review_id, texts = read_data(FLAGS.test_data)
+    pred_contents, review_id, texts = read_data(FLAGS.test_data, sep=' ')
     model = TextRNN(FLAGS.embedding_size, FLAGS.hidden_layers, FLAGS.hidden_units, FLAGS.number_classes,
                     FLAGS.learning_rate, FLAGS.sequence_length, FLAGS.vocab_size)
 
-    train()
+
+    # train()
     # test()
-    # predict()
+    predict()
