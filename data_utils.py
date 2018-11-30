@@ -13,6 +13,7 @@ parser.add_argument('--test_size', type=float, default='0.1')
 FLAGS, unparser = parser.parse_known_args()
 
 
+
 # 加载数据并随机打乱
 def load_data(file_name, sep=' ', sep1=',', isCharacter=False):
     label_list = []
