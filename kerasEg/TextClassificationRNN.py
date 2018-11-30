@@ -3,32 +3,27 @@
 # Author: lionel
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from tensorflow.keras.preprocessing.text import Tokenizer
-
-from kerasEg.DataUtils import load_data
+import numpy as np
+from kerasEg.DataUtils import load_data, words_to_ids, text_to_sequence
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_string('data_path', '/tmp/text_train.csv', 'train data path')
 
 X_train, X_test, y_train, y_test = load_data(FLAGS.data_path)
 
-# 构建单词-id词典
-tokenizer = Tokenizer(lower=True, char_level=True)
-tokenizer.fit_on_texts(X_train)
-word_index = tokenizer.word_index
-word_index = {k: (v + 1) for k, v in word_index.items()}
-word_index['<pad>'] = 0
-word_index['<unk>'] = 1
+## 建立 word—>id 字典
+word_index = words_to_ids(X_train)
 
 # 将每个词用词典中的数值代替
-X_train_ids = tokenizer.texts_to_sequences(X_train)
-X_test_ids = tokenizer.texts_to_sequences(X_test)
+X_train_ids = np.array([text_to_sequence(ele, word_index) for ele in X_train])
+X_test_ids = np.array([text_to_sequence(ele, word_index) for ele in X_test])
 
 # 统一字符长度
 X_train_data = tf.keras.preprocessing.sequence.pad_sequences(X_train_ids, value=word_index['<pad>'],
                                                              padding='post', maxlen=1000)
 X_test_data = tf.keras.preprocessing.sequence.pad_sequences(X_test_ids, value=word_index['<pad>'],
                                                             padding='post', maxlen=1000)
+
 ## 类别用 one-hot 编码表示
 label_index = dict()
 for ele in set(y_train):
@@ -40,11 +35,8 @@ y_test_data = tf.keras.utils.to_categorical([label_index[ele] for ele in y_test]
 ## model
 model = tf.keras.Sequential()
 model.add(tf.keras.layers.Embedding(len(word_index) - 1, 16))
-
 model.add(tf.keras.layers.LSTM(50, return_sequences=True))
 model.add(tf.keras.layers.GlobalAveragePooling1D())
-
-# model.add(tf.keras.layers.Dense(16, activation=tf.nn.relu))
 model.add(tf.keras.layers.Dense(2, activation=tf.nn.softmax))
 model.summary()
 
