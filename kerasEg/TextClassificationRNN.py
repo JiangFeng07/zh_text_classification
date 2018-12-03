@@ -48,29 +48,33 @@ partial_x_train = X_train_data[300:]
 y_val = y_train_data[:300]
 partial_y_train = y_train_data[300:]
 
+callbacks = [tf.keras.callbacks.TensorBoard(log_dir='/tmp/logs')]
 history = model.fit(partial_x_train,
                     partial_y_train,
-                    epochs=5,
+                    epochs=40,
                     batch_size=100,
+                    callbacks=callbacks,
                     validation_data=(x_val, y_val),
                     verbose=1)
+
+model.save('my_model.h5')
 
 results = model.evaluate(X_test_data, y_test_data)
 print(results)
 
-history_dict = history.history
-acc = history_dict['acc']
-val_acc = history_dict['val_acc']
-loss = history_dict['loss']
-val_loss = history_dict['val_loss']
-
-epochs = range(1, len(acc) + 1)
-
-plt.plot(epochs, loss, 'bo', label='Training loss')
-plt.plot(epochs, val_loss, 'b', label='Validation loss')
-plt.title('Training and validation loss')
-plt.xlabel('Epochs')
-plt.ylabel('Loss')
-plt.legend()
-
-plt.show()
+# history_dict = history.history
+# acc = history_dict['acc']
+# val_acc = history_dict['val_acc']
+# loss = history_dict['loss']
+# val_loss = history_dict['val_loss']
+#
+# epochs = range(1, len(acc) + 1)
+#
+# plt.plot(epochs, loss, 'bo', label='Training loss')
+# plt.plot(epochs, val_loss, 'b', label='Validation loss')
+# plt.title('Training and validation loss')
+# plt.xlabel('Epochs')
+# plt.ylabel('Loss')
+# plt.legend()
+#
+# plt.show()
