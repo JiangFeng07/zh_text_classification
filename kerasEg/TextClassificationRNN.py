@@ -2,9 +2,32 @@
 # -*- coding:utf-8 -*- 
 # Author: lionel
 import tensorflow as tf
-import matplotlib.pyplot as plt
 import numpy as np
 from kerasEg.DataUtils import load_data, words_to_ids, text_to_sequence
+
+
+class MyModel(tf.keras.Model):
+    def __init__(self, num_classes=2, vocab_size=1000, embedding_size=16, units=32):
+        super(MyModel, self).__init__(name='my_model')
+        self.num_classes = num_classes
+        self.vocab_size = vocab_size
+        self.embedding_size = embedding_size
+        self.embedding_layer = tf.keras.layers.Embedding(vocab_size + 1, embedding_size)
+        self.Lstm_layer = tf.keras.layers.LSTM(units=units, return_sequences=True)
+        self.GlobalAveragePooling_layer = tf.keras.layers.GlobalAveragePooling1D()
+        self.dense_layer = tf.keras.layers.Dense(num_classes, activation=tf.nn.softmax)
+
+    def call(self, inputs):
+        x = self.embedding_layer(inputs)
+        x = self.Lstm_layer(x)
+        x = self.GlobalAveragePooling_layer(x)
+        return self.dense_layer(x)
+
+    def compute_output_shape(self, input_shape):
+        shape = tf.TensorShape(input_shape).as_list()
+        shape[-1] = self.num_classes
+        return tf.TensorShape(shape)
+
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_string('data_path', '/tmp/text_train.csv', 'train data path')
@@ -33,13 +56,15 @@ y_train_data = tf.keras.utils.to_categorical([label_index[ele] for ele in y_trai
 y_test_data = tf.keras.utils.to_categorical([label_index[ele] for ele in y_test], 2)
 
 ## model
-model = tf.keras.Sequential()
-model.add(tf.keras.layers.Embedding(len(word_index) - 1, 16))
-model.add(tf.keras.layers.LSTM(50, return_sequences=True))
-model.add(tf.keras.layers.GlobalAveragePooling1D())
-model.add(tf.keras.layers.Dense(2, activation=tf.nn.softmax))
-model.summary()
+# model = tf.keras.Sequential()
+# model.add(tf.keras.layers.Embedding(len(word_index) - 1, 16))
+# model.add(tf.keras.layers.LSTM(50, return_sequences=True))
+# model.add(tf.keras.layers.GlobalAveragePooling1D())
+# model.add(tf.keras.layers.Dense(2, activation=tf.nn.softmax))
+# model.summary()
 
+# 自定义 model
+model = MyModel(num_classes=2, vocab_size=len(word_index) - 2, units=50 )
 model.compile(optimizer=tf.train.AdamOptimizer(), loss='binary_crossentropy', metrics=['accuracy'])
 
 x_val = X_train_data[:300]
@@ -78,3 +103,6 @@ print(results)
 # plt.legend()
 #
 # plt.show()
+
+
+tf.feature_column.input_layer()
