@@ -3,106 +3,76 @@
 # Author: lionel
 import tensorflow as tf
 import numpy as np
-from kerasEg.DataUtils import load_data, words_to_ids, text_to_sequence
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
-
-class MyModel(tf.keras.Model):
-    def __init__(self, num_classes=2, vocab_size=1000, embedding_size=16, units=32):
-        super(MyModel, self).__init__(name='my_model')
-        self.num_classes = num_classes
-        self.vocab_size = vocab_size
-        self.embedding_size = embedding_size
-        self.embedding_layer = tf.keras.layers.Embedding(vocab_size + 1, embedding_size)
-        self.Lstm_layer = tf.keras.layers.LSTM(units=units, return_sequences=True)
-        self.GlobalAveragePooling_layer = tf.keras.layers.GlobalAveragePooling1D()
-        self.dense_layer = tf.keras.layers.Dense(num_classes, activation=tf.nn.softmax)
-
-    def call(self, inputs):
-        x = self.embedding_layer(inputs)
-        x = self.Lstm_layer(x)
-        x = self.GlobalAveragePooling_layer(x)
-        return self.dense_layer(x)
-
-    def compute_output_shape(self, input_shape):
-        shape = tf.TensorShape(input_shape).as_list()
-        shape[-1] = self.num_classes
-        return tf.TensorShape(shape)
-
+from kerasEg.DataUtils import words_to_ids, text_to_sequence
 
 FLAGS = tf.flags.FLAGS
-tf.flags.DEFINE_string('data_path', '/tmp/text_train.csv', 'train data path')
-
-X_train, X_test, y_train, y_test = load_data(FLAGS.data_path)
-
-## 建立 word—>id 字典
-word_index = words_to_ids(X_train)
-
-# 将每个词用词典中的数值代替
-X_train_ids = np.array([text_to_sequence(ele, word_index) for ele in X_train])
-X_test_ids = np.array([text_to_sequence(ele, word_index) for ele in X_test])
-
-# 统一字符长度
-X_train_data = tf.keras.preprocessing.sequence.pad_sequences(X_train_ids, value=word_index['<pad>'],
-                                                             padding='post', maxlen=1000)
-X_test_data = tf.keras.preprocessing.sequence.pad_sequences(X_test_ids, value=word_index['<pad>'],
-                                                            padding='post', maxlen=1000)
-
-## 类别用 one-hot 编码表示
-label_index = dict()
-for ele in set(y_train):
-    label_index[ele] = len(label_index)
-y_labels = list(label_index.values())
-y_train_data = tf.keras.utils.to_categorical([label_index[ele] for ele in y_train], 2)
-y_test_data = tf.keras.utils.to_categorical([label_index[ele] for ele in y_test], 2)
-
-## model
-# model = tf.keras.Sequential()
-# model.add(tf.keras.layers.Embedding(len(word_index) - 1, 16))
-# model.add(tf.keras.layers.LSTM(50, return_sequences=True))
-# model.add(tf.keras.layers.GlobalAveragePooling1D())
-# model.add(tf.keras.layers.Dense(2, activation=tf.nn.softmax))
-# model.summary()
-
-# 自定义 model
-model = MyModel(num_classes=2, vocab_size=len(word_index) - 2, units=50 )
-model.compile(optimizer=tf.train.AdamOptimizer(), loss='binary_crossentropy', metrics=['accuracy'])
-
-x_val = X_train_data[:300]
-partial_x_train = X_train_data[300:]
-
-y_val = y_train_data[:300]
-partial_y_train = y_train_data[300:]
-
-callbacks = [tf.keras.callbacks.TensorBoard(log_dir='/tmp/logs')]
-history = model.fit(partial_x_train,
-                    partial_y_train,
-                    epochs=40,
-                    batch_size=100,
-                    callbacks=callbacks,
-                    validation_data=(x_val, y_val),
-                    verbose=1)
-
-model.save('my_model.h5')
-
-results = model.evaluate(X_test_data, y_test_data)
-print(results)
-
-# history_dict = history.history
-# acc = history_dict['acc']
-# val_acc = history_dict['val_acc']
-# loss = history_dict['loss']
-# val_loss = history_dict['val_loss']
-#
-# epochs = range(1, len(acc) + 1)
-#
-# plt.plot(epochs, loss, 'bo', label='Training loss')
-# plt.plot(epochs, val_loss, 'b', label='Validation loss')
-# plt.title('Training and validation loss')
-# plt.xlabel('Epochs')
-# plt.ylabel('Loss')
-# plt.legend()
-#
-# plt.show()
+tf.flags.DEFINE_string('train_path', '/tmp/train.csv', 'train data path')
+tf.flags.DEFINE_string('model_path', './model/my_model2.h5', 'model path')
+tf.flags.DEFINE_integer('embedding_size', 16, 'embedding size')
+tf.flags.DEFINE_integer('units', 50, 'lstm units')
+tf.flags.DEFINE_integer('num_classes', 2, 'class number')
 
 
-tf.feature_column.input_layer()
+def create_rnn_model():
+    model = tf.keras.Sequential()
+    model.add(tf.keras.layers.Embedding(len(word_index), FLAGS.embedding_size))
+    model.add(tf.keras.layers.LSTM(FLAGS.units, return_sequences=True))
+    model.add(tf.keras.layers.GlobalAveragePooling1D())
+    model.add(tf.keras.layers.Dense(FLAGS.num_classes, activation=tf.nn.softmax))
+    return model
+
+
+if __name__ == '__main__':
+
+    data = pd.read_csv(FLAGS.train_path, header=None, sep='\t', error_bad_lines=False)
+    texts = data.values[:, 1]
+    labels = data.values[:, 0]
+    X_train, X_test, y_train, y_test = train_test_split(texts, labels, test_size=0.1, random_state=0)
+
+    ## 建立 word—>id 字典
+    word_index = words_to_ids(X_train)
+
+    # 将每个词用词典中的数值代替
+    X_train_ids = np.array([text_to_sequence(ele, word_index) for ele in X_train])
+    X_test_ids = np.array([text_to_sequence(ele, word_index) for ele in X_test])
+
+    # 统一字符长度
+    X_train_data = tf.keras.preprocessing.sequence.pad_sequences(X_train_ids, value=word_index['<pad>'],
+                                                                 padding='post', maxlen=500)
+    X_test_data = tf.keras.preprocessing.sequence.pad_sequences(X_test_ids, value=word_index['<pad>'],
+                                                                padding='post', maxlen=500)
+
+    ## 类别用 one-hot 编码表示
+    label_index = dict()
+    for ele in set(y_train):
+        label_index[ele] = len(label_index)
+    y_train_data = tf.keras.utils.to_categorical([label_index[ele] for ele in y_train], 2)
+    y_test_data = tf.keras.utils.to_categorical([label_index[ele] for ele in y_test], 2)
+
+    # model
+    model = create_rnn_model()
+
+    ##自定义model
+    # model = MyModel(num_classes=2, vocab_size=len(word_index) - 2, units=50)
+
+    model.compile(optimizer=tf.train.AdamOptimizer(), loss='binary_crossentropy', metrics=['accuracy'])
+
+    x_val = X_train_data[:3000]
+    partial_x_train = X_train_data[3000:]
+
+    y_val = y_train_data[:3000]
+    partial_y_train = y_train_data[3000:]
+
+    callbacks = [tf.keras.callbacks.TensorBoard(log_dir='/tmp/logs')]
+    history = model.fit(partial_x_train,
+                        partial_y_train,
+                        epochs=20,
+                        batch_size=200,
+                        callbacks=callbacks,
+                        validation_data=(x_val, y_val),
+                        verbose=1)
+
+    model.save(FLAGS.model_path)
